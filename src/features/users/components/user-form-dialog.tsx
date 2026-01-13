@@ -23,20 +23,6 @@ import {
 } from "@/shared/components/ui/select";
 import { User } from "../types";
 
-// 👇 FIX: Separate form types for create and update
-type CreateFormData = {
-  username: string;
-  password: string;
-  name: string;
-  role: "admin" | "cashier";
-};
-
-type UpdateFormData = {
-  username: string;
-  name: string;
-  role: "admin" | "cashier";
-};
-
 const createUserSchema = z.object({
   username: z.string().min(3, "Username minimal 3 karakter"),
   password: z.string().min(6, "Password minimal 6 karakter"),
@@ -49,6 +35,9 @@ const updateUserSchema = z.object({
   name: z.string().min(1, "Nama wajib diisi"),
   role: z.enum(["admin", "cashier"], { message: "Role wajib dipilih" }),
 });
+
+type CreateFormData = z.infer<typeof createUserSchema>;
+type UpdateFormData = z.infer<typeof updateUserSchema>;
 
 interface UserFormDialogProps {
   open: boolean;
@@ -67,7 +56,36 @@ export function UserFormDialog({
 }: UserFormDialogProps) {
   const isEdit = !!user;
 
-  // 👇 FIX: Use conditional types
+  return isEdit ? (
+    <UpdateUserForm
+      open={open}
+      onOpenChange={onOpenChange}
+      onSubmit={onSubmit}
+      user={user}
+      isLoading={isLoading}
+    />
+  ) : (
+    <CreateUserForm
+      open={open}
+      onOpenChange={onOpenChange}
+      onSubmit={onSubmit}
+      isLoading={isLoading}
+    />
+  );
+}
+
+// Create User Form Component
+function CreateUserForm({
+  open,
+  onOpenChange,
+  onSubmit,
+  isLoading,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (data: CreateFormData) => void;
+  isLoading?: boolean;
+}) {
   const {
     register,
     handleSubmit,
@@ -75,35 +93,19 @@ export function UserFormDialog({
     watch,
     reset,
     formState: { errors },
-  } = useForm<CreateFormData | UpdateFormData>({
-    resolver: zodResolver(isEdit ? updateUserSchema : createUserSchema) as any,
-    defaultValues: isEdit
-      ? {
-          username: "",
-          name: "",
-          role: "cashier" as const,
-        }
-      : {
-          username: "",
-          password: "",
-          name: "",
-          role: "cashier" as const,
-        },
+  } = useForm<CreateFormData>({
+    resolver: zodResolver(createUserSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+      name: "",
+      role: "cashier",
+    },
   });
 
   const role = watch("role");
 
-  useEffect(() => {
-    if (user && open) {
-      setValue("username", user.username);
-      setValue("name", user.name);
-      setValue("role", user.role);
-    } else if (!open) {
-      reset();
-    }
-  }, [user, open, setValue, reset]);
-
-  const handleFormSubmit = (data: CreateFormData | UpdateFormData) => {
+  const handleFormSubmit = (data: CreateFormData) => {
     onSubmit(data);
     reset();
     onOpenChange(false);
@@ -113,11 +115,9 @@ export function UserFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit User" : "Tambah User Baru"}</DialogTitle>
+          <DialogTitle>Tambah User Baru</DialogTitle>
           <DialogDescription>
-            {isEdit
-              ? "Update informasi user"
-              : "Buat akun user baru untuk sistem"}
+            Buat akun user baru untuk sistem
           </DialogDescription>
         </DialogHeader>
 
@@ -136,22 +136,20 @@ export function UserFormDialog({
             )}
           </div>
 
-          {!isEdit && (
-            <div className="space-y-2">
-              <Label htmlFor="password">Password *</Label>
-              <Input
-                id="password"
-                type="password"
-                {...register("password")}
-                placeholder="••••••••"
-              />
-              {errors.password && (
-                <p className="text-sm text-destructive">
-                  {errors.password.message}
-                </p>
-              )}
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label htmlFor="password">Password *</Label>
+            <Input
+              id="password"
+              type="password"
+              {...register("password")}
+              placeholder="••••••••"
+            />
+            {errors.password && (
+              <p className="text-sm text-destructive">
+                {errors.password.message}
+              </p>
+            )}
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="name">Nama Lengkap *</Label>
@@ -195,7 +193,127 @@ export function UserFormDialog({
               Batal
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Menyimpan..." : isEdit ? "Update" : "Tambah"}
+              {isLoading ? "Menyimpan..." : "Tambah"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Update User Form Component
+function UpdateUserForm({
+  open,
+  onOpenChange,
+  onSubmit,
+  user,
+  isLoading,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (data: UpdateFormData) => void;
+  user: User;
+  isLoading?: boolean;
+}) {
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm<UpdateFormData>({
+    resolver: zodResolver(updateUserSchema),
+    defaultValues: {
+      username: user.username,
+      name: user.name,
+      role: user.role,
+    },
+  });
+
+  const role = watch("role");
+
+  useEffect(() => {
+    if (open) {
+      setValue("username", user.username);
+      setValue("name", user.name);
+      setValue("role", user.role);
+    }
+  }, [user, open, setValue]);
+
+  const handleFormSubmit = (data: UpdateFormData) => {
+    onSubmit(data);
+    reset();
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit User</DialogTitle>
+          <DialogDescription>Update informasi user</DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="username">Username *</Label>
+            <Input
+              id="username"
+              {...register("username")}
+              placeholder="username"
+            />
+            {errors.username && (
+              <p className="text-sm text-destructive">
+                {errors.username.message}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="name">Nama Lengkap *</Label>
+            <Input
+              id="name"
+              {...register("name")}
+              placeholder="Nama lengkap"
+            />
+            {errors.name && (
+              <p className="text-sm text-destructive">{errors.name.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="role">Role *</Label>
+            <Select
+              value={role}
+              onValueChange={(value: "admin" | "cashier") =>
+                setValue("role", value)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="cashier">Cashier</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.role && (
+              <p className="text-sm text-destructive">{errors.role.message}</p>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Batal
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Menyimpan..." : "Update"}
             </Button>
           </div>
         </form>
