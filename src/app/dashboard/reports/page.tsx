@@ -34,6 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
+import { TopProduct } from "@/features/transactions/types";
 
 export default function ReportsPage() {
   // Default: Last 30 days
@@ -68,20 +69,20 @@ export default function ReportsPage() {
       [`Periode: ${format(new Date(startDate), "dd MMM yyyy")} - ${format(new Date(endDate), "dd MMM yyyy")}`],
       [""],
       ["RINGKASAN"],
-      ["Total Transaksi", salesReport.total_transactions],
-      ["Total Pendapatan", salesReport.total_revenue],
-      ["Total Item Terjual", salesReport.total_items_sold],
-      ["Rata-rata Transaksi", salesReport.average_transaction],
-      ["Pendapatan Tunai", salesReport.cash_revenue],
-      ["Pendapatan Transfer", salesReport.transfer_revenue],
+      ["Total Transaksi", salesReport.total_transactions.toString()],
+      ["Total Pendapatan", salesReport.total_revenue.toString()],
+      ["Total Item Terjual", salesReport.total_items_sold.toString()],
+      ["Rata-rata Transaksi", salesReport.average_transaction.toString()],
+      ["Pendapatan Tunai", salesReport.cash_revenue.toString()],
+      ["Pendapatan Transfer", salesReport.transfer_revenue.toString()],
       [""],
       ["PRODUK TERLARIS"],
       ["Nama Produk", "Kode", "Qty Terjual", "Total Pendapatan"],
-      ...(topProducts || []).map((p) => [
+      ...(topProducts || []).map((p: TopProduct) => [
         p.product_name,
         p.product_code,
-        p.total_quantity,
-        p.total_revenue,
+        p.total_quantity.toString(),
+        p.total_revenue.toString(),
       ]),
     ];
 
