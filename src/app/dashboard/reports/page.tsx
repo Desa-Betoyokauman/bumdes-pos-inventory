@@ -378,7 +378,7 @@ export default function ReportsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {topProducts.map((product, index) => (
+                      {topProducts.map((product: TopProduct, index: number) => (
                         <TableRow key={product.product_id}>
                           <TableCell>
                             <div className="flex items-center justify-center">
