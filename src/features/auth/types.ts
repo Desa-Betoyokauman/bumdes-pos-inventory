@@ -23,7 +23,5 @@ export interface User {
   id: number;
   username: string;
   name: string;
-  role: 'admin' | 'kasir';
-  created_at: string;
-  updated_at: string;
+  role: "admin" | "cashier"; // 👈 CHANGE from "kasir" to "cashier"
 }
