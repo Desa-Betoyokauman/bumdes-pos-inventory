@@ -34,3 +34,11 @@ export const useCreateStockMovement = () => {
     },
   });
 };
+
+export const useStockSummary = () => {
+  return useQuery({
+    queryKey: ["stock-summary"],
+    queryFn: stockApi.getSummary,
+    refetchInterval: 60000, // Auto-refresh every 1 minute
+  });
+};

@@ -63,3 +63,11 @@ export const useDeleteProduct = () => {
     },
   });
 };
+
+export const useLowStockProducts = () => {
+  return useQuery({
+    queryKey: ["products", "low-stock"],
+    queryFn: productsApi.getLowStock,
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
+  });
+};

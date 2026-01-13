@@ -20,3 +20,12 @@ export interface StockMovementFormData {
   quantity: number;
   note?: string;  // Ganti dari 'notes' ke 'note'
 }
+
+export interface StockSummary {
+  total_products: number;
+  total_stock_value: number;
+  low_stock_count: number;
+  out_of_stock_count: number;
+  total_stock_in_today: number;
+  total_stock_out_today: number;
+}

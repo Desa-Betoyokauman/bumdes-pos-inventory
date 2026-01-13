@@ -13,6 +13,11 @@ export const productsApi = {
     return response.data.data;
   },
 
+  getLowStock: async (): Promise<Product[]> => {
+    const response = await api.get("/products/low-stock");
+    return response.data.data || [];
+  },
+
   create: async (data: ProductFormData): Promise<Product> => {
     console.log("Sending product data:", data);
     const response = await api.post("/products", data);

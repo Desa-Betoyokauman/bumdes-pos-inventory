@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   LogOut,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/shared/components/ui/button";
@@ -47,6 +48,11 @@ const menuItems: MenuItem[] = [
     title: "Stok",
     href: "/dashboard/stock",
     icon: Archive,
+  },
+  {
+    title: "Stok Rendah",
+    href: "/dashboard/inventory/low-stock",
+    icon: AlertTriangle,
   },
   {
     title: "Kasir (POS)",

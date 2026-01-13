@@ -1,5 +1,5 @@
 import { api } from "@/shared/lib/api";
-import { StockMovement, StockMovementFormData } from "../types";
+import { StockMovement, StockMovementFormData, StockSummary } from "../types";
 
 export const stockApi = {
   getAll: async (): Promise<StockMovement[]> => {
@@ -15,5 +15,10 @@ export const stockApi = {
   getByProduct: async (productId: number): Promise<StockMovement[]> => {
     const response = await api.get(`/stock/movements/product/${productId}`);  // Ganti endpoint
     return response.data.data.movements || [];
+  },
+
+  getSummary: async (): Promise<StockSummary> => {
+    const response = await api.get("/stock/summary");
+    return response.data.data;
   },
 };
