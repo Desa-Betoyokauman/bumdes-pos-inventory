@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, startTransition } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   LayoutDashboard,
   Package,
   ShoppingCart,
-  TrendingUp,
   Archive,
   Folder,
+  History,
+  FileText,
   Menu,
   X,
   LogOut,
@@ -18,11 +19,11 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/shared/components/ui/button";
 import { authService } from "@/features/auth/api/auth.service";
 import { useRouter } from "next/navigation";
+import type { User } from "@/features/auth/types";
 
-// Fix: href sekarang required (bukan optional)
 interface MenuItem {
   title: string;
-  href: string; // ← Changed from 'string | undefined' to 'string'
+  href: string;
   icon: React.ComponentType<{ className?: string }>;
 }
 
@@ -53,9 +54,14 @@ const menuItems: MenuItem[] = [
     icon: ShoppingCart,
   },
   {
+    title: "Riwayat",
+    href: "/dashboard/history",
+    icon: History,
+  },
+  {
     title: "Laporan",
     href: "/dashboard/reports",
-    icon: TrendingUp,
+    icon: FileText,
   },
 ];
 
@@ -68,8 +74,16 @@ export default function DashboardLayout({
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [mounted, setMounted] = useState(false);
 
-  const user = authService.getUser();
+  useEffect(() => {
+    startTransition(() => {
+      const userData = authService.getUser();
+      setUser(userData);
+      setMounted(true);
+    });
+  }, []);
 
   const handleLogout = () => {
     authService.logout();
@@ -101,7 +115,7 @@ export default function DashboardLayout({
         </div>
 
         {/* Menu Items */}
-        <nav className="flex-1 space-y-1 p-2">
+        <nav className="flex-1 space-y-1 overflow-y-auto p-2">
           {menuItems.map((item) => {
             const isActive = pathname === item.href;
             return (
@@ -124,16 +138,23 @@ export default function DashboardLayout({
           })}
         </nav>
 
-        {/* User Info & Logout */}
+        {/* User Info & Logout - Only render when mounted */}
         <div className="border-t p-4">
           {sidebarOpen ? (
             <div className="space-y-3">
-              <div className="text-sm">
-                <p className="font-medium">{user?.name || "User"}</p>
-                <p className="text-xs text-muted-foreground">
-                  {user?.role || "cashier"}
-                </p>
-              </div>
+              {mounted ? (
+                <div className="text-sm">
+                  <p className="font-medium">{user?.name || "User"}</p>
+                  <p className="text-xs text-muted-foreground capitalize">
+                    {user?.role || "cashier"}
+                  </p>
+                </div>
+              ) : (
+                <div className="text-sm">
+                  <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+                  <div className="mt-1 h-3 w-16 animate-pulse rounded bg-muted" />
+                </div>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -200,21 +221,33 @@ export default function DashboardLayout({
             </nav>
 
             <div className="absolute bottom-0 w-full border-t p-4">
-              <div className="mb-3 text-sm">
-                <p className="font-medium">{user?.name || "User"}</p>
-                <p className="text-xs text-muted-foreground">
-                  {user?.role || "cashier"}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleLogout}
-                className="w-full"
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </Button>
+              {mounted ? (
+                <>
+                  <div className="mb-3 text-sm">
+                    <p className="font-medium">{user?.name || "User"}</p>
+                    <p className="text-xs text-muted-foreground capitalize">
+                      {user?.role || "cashier"}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="w-full"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <div className="space-y-3">
+                  <div className="text-sm">
+                    <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+                    <div className="mt-1 h-3 w-16 animate-pulse rounded bg-muted" />
+                  </div>
+                  <div className="h-8 w-full animate-pulse rounded bg-muted" />
+                </div>
+              )}
             </div>
           </aside>
         </div>
@@ -232,7 +265,7 @@ export default function DashboardLayout({
             <Menu className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-bold">BUMDes POS</h1>
-          <div className="w-10" /> {/* Spacer for centering */}
+          <div className="w-10" />
         </header>
 
         {/* Page Content */}
