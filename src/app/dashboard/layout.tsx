@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, startTransition } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   LayoutDashboard,
@@ -15,17 +15,18 @@ import {
   X,
   LogOut,
   AlertTriangle,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/shared/components/ui/button";
 import { authService } from "@/features/auth/api/auth.service";
-import { useRouter } from "next/navigation";
 import type { User } from "@/features/auth/types";
 
 interface MenuItem {
   title: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
+  adminOnly?: boolean; // 👈 ADD THIS
 }
 
 const menuItems: MenuItem[] = [
@@ -33,26 +34,6 @@ const menuItems: MenuItem[] = [
     title: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
-  },
-  {
-    title: "Produk",
-    href: "/dashboard/products",
-    icon: Package,
-  },
-  {
-    title: "Kategori",
-    href: "/dashboard/categories",
-    icon: Folder,
-  },
-  {
-    title: "Stok",
-    href: "/dashboard/stock",
-    icon: Archive,
-  },
-  {
-    title: "Stok Rendah",
-    href: "/dashboard/inventory/low-stock",
-    icon: AlertTriangle,
   },
   {
     title: "Kasir (POS)",
@@ -64,10 +45,42 @@ const menuItems: MenuItem[] = [
     href: "/dashboard/history",
     icon: History,
   },
+  // 👇 ADMIN ONLY ITEMS
+  {
+    title: "Produk",
+    href: "/dashboard/products",
+    icon: Package,
+    adminOnly: true, // 👈 ADD THIS
+  },
+  {
+    title: "Kategori",
+    href: "/dashboard/categories",
+    icon: Folder,
+    adminOnly: true, // 👈 ADD THIS
+  },
+  {
+    title: "Stok",
+    href: "/dashboard/stock",
+    icon: Archive,
+    adminOnly: true, // 👈 ADD THIS
+  },
+  {
+    title: "Stok Rendah",
+    href: "/dashboard/inventory/low-stock",
+    icon: AlertTriangle,
+    adminOnly: true, // 👈 ADD THIS
+  },
   {
     title: "Laporan",
     href: "/dashboard/reports",
     icon: FileText,
+    adminOnly: true, // 👈 ADD THIS
+  },
+  {
+    title: "User Management",
+    href: "/dashboard/settings/users",
+    icon: Settings,
+    adminOnly: true, // 👈 ADD THIS
   },
 ];
 
@@ -96,6 +109,12 @@ export default function DashboardLayout({
     router.push("/login");
   };
 
+  // 👇 ADD: Filter menu based on role
+  const isAdmin = user?.role === "admin";
+  const filteredMenuItems = menuItems.filter(
+    (item) => !item.adminOnly || isAdmin
+  );
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Sidebar Desktop */}
@@ -120,9 +139,9 @@ export default function DashboardLayout({
           </Button>
         </div>
 
-        {/* Menu Items */}
+        {/* Menu Items - 👇 USE FILTERED MENU */}
         <nav className="flex-1 space-y-1 overflow-y-auto p-2">
-          {menuItems.map((item) => {
+          {filteredMenuItems.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link
@@ -144,7 +163,7 @@ export default function DashboardLayout({
           })}
         </nav>
 
-        {/* User Info & Logout - Only render when mounted */}
+        {/* User Info & Logout */}
         <div className="border-t p-4">
           {sidebarOpen ? (
             <div className="space-y-3">
@@ -204,8 +223,9 @@ export default function DashboardLayout({
               </Button>
             </div>
 
+            {/* Mobile Menu - 👇 USE FILTERED MENU */}
             <nav className="space-y-1 p-2">
-              {menuItems.map((item) => {
+              {filteredMenuItems.map((item) => {
                 const isActive = pathname === item.href;
                 return (
                   <Link

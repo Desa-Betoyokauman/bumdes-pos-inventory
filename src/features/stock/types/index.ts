@@ -29,3 +29,13 @@ export interface StockSummary {
   total_stock_in_today: number;
   total_stock_out_today: number;
 }
+
+export interface StockHistoryResponse {
+  product: {
+    id: number;
+    name: string;
+    code: string;
+    stock: number;
+  };
+  movements: StockMovement[];
+}

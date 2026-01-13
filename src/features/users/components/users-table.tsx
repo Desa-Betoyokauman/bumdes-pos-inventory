@@ -22,69 +22,73 @@ import {
 } from "@/shared/components/ui/table";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import { Pencil, Trash2, Search, History } from "lucide-react"; // 👈 ADD History
-import { Product } from "../types";
-import { StockHistoryDialog } from "@/features/stock/components/stock-history-dialog"; // 👈 ADD THIS
+import { Badge } from "@/shared/components/ui/badge";
+import { Pencil, Trash2, Search, Key } from "lucide-react";
+import { User } from "../types";
+import { format } from "date-fns";
+import { id as idLocale } from "date-fns/locale";
 
-interface ProductsTableProps {
-  data: Product[];
-  onEdit: (product: Product) => void;
+interface UsersTableProps {
+  data: User[];
+  onEdit: (user: User) => void;
   onDelete: (id: number) => void;
+  onChangePassword: (user: User) => void;
+  currentUserId?: number;
 }
 
-export function ProductsTable({ data, onEdit, onDelete }: ProductsTableProps) {
+export function UsersTable({
+  data,
+  onEdit,
+  onDelete,
+  onChangePassword,
+  currentUserId,
+}: UsersTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  
-  // 👇 ADD THESE STATES
-  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  const columns: ColumnDef<Product>[] = [
+  const columns: ColumnDef<User>[] = [
     {
-      accessorKey: "code",
-      header: "Kode",
+      accessorKey: "username",
+      header: "Username",
+      cell: ({ row }) => {
+        const isCurrentUser = row.original.id === currentUserId;
+        return (
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{row.original.username}</span>
+            {isCurrentUser && (
+              <Badge variant="outline" className="text-xs">
+                You
+              </Badge>
+            )}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "name",
-      header: "Nama Produk",
+      header: "Nama Lengkap",
     },
     {
-      accessorKey: "category",
-      header: "Kategori",
+      accessorKey: "role",
+      header: "Role",
       cell: ({ row }) => {
-        return <div>{row.original.category?.name || "-"}</div>;
-      },
-    },
-    {
-      accessorKey: "unit",
-      header: "Satuan",
-    },
-    {
-      accessorKey: "price",
-      header: "Harga",
-      cell: ({ row }) => {
-        const price = parseFloat(row.getValue("price"));
-        const formatted = new Intl.NumberFormat("id-ID", {
-          style: "currency",
-          currency: "IDR",
-          minimumFractionDigits: 0,
-        }).format(price);
-        return <div>{formatted}</div>;
-      },
-    },
-    {
-      accessorKey: "stock",
-      header: "Stok",
-      cell: ({ row }) => {
-        const stock = row.getValue("stock") as number;
-        const minStock = row.original.min_stock;
-        const isLowStock = stock <= minStock;
-        
+        const role = row.getValue("role") as string;
         return (
-          <div className={isLowStock ? "text-destructive font-semibold" : ""}>
-            {stock}
-            {isLowStock && " ⚠️"}
+          <Badge variant={role === "admin" ? "default" : "secondary"}>
+            {role === "admin" ? "Admin" : "Cashier"}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: "created_at",
+      header: "Dibuat",
+      cell: ({ row }) => {
+        return (
+          <div className="text-sm text-muted-foreground">
+            {format(new Date(row.getValue("created_at")), "dd MMM yyyy", {
+              locale: idLocale,
+            })}
           </div>
         );
       },
@@ -93,26 +97,24 @@ export function ProductsTable({ data, onEdit, onDelete }: ProductsTableProps) {
       id: "actions",
       header: "Aksi",
       cell: ({ row }) => {
-        const product = row.original;
+        const user = row.original;
+        const isCurrentUser = user.id === currentUserId;
 
         return (
           <div className="flex gap-2">
-            {/* 👇 ADD History Button */}
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => {
-                setSelectedProduct(product);
-                setHistoryDialogOpen(true);
-              }}
-              title="Lihat Riwayat"
+              onClick={() => onChangePassword(user)}
+              title="Ubah Password"
             >
-              <History className="h-4 w-4" />
+              <Key className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => onEdit(product)}
+              onClick={() => onEdit(user)}
+              title="Edit"
             >
               <Pencil className="h-4 w-4" />
             </Button>
@@ -120,12 +122,18 @@ export function ProductsTable({ data, onEdit, onDelete }: ProductsTableProps) {
               variant="ghost"
               size="icon"
               onClick={() => {
-                if (confirm(`Hapus produk "${product.name}"?`)) {
-                  onDelete(product.id);
+                if (confirm(`Hapus user "${user.name}"?`)) {
+                  onDelete(user.id);
                 }
               }}
+              disabled={isCurrentUser}
+              title={isCurrentUser ? "Tidak dapat menghapus akun sendiri" : "Hapus"}
             >
-              <Trash2 className="h-4 w-4 text-destructive" />
+              <Trash2
+                className={`h-4 w-4 ${
+                  isCurrentUser ? "text-muted-foreground" : "text-destructive"
+                }`}
+              />
             </Button>
           </div>
         );
@@ -154,7 +162,7 @@ export function ProductsTable({ data, onEdit, onDelete }: ProductsTableProps) {
         <div className="relative flex-1">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Cari produk..."
+            placeholder="Cari user..."
             value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
             onChange={(event) =>
               table.getColumn("name")?.setFilterValue(event.target.value)
@@ -205,7 +213,7 @@ export function ProductsTable({ data, onEdit, onDelete }: ProductsTableProps) {
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  Tidak ada data produk.
+                  Tidak ada data user.
                 </TableCell>
               </TableRow>
             )}
@@ -215,7 +223,7 @@ export function ProductsTable({ data, onEdit, onDelete }: ProductsTableProps) {
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
-          {table.getFilteredRowModel().rows.length} produk
+          {table.getFilteredRowModel().rows.length} user
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -236,16 +244,6 @@ export function ProductsTable({ data, onEdit, onDelete }: ProductsTableProps) {
           </Button>
         </div>
       </div>
-
-      {/* 👇 ADD Stock History Dialog */}
-      {selectedProduct && (
-        <StockHistoryDialog
-          open={historyDialogOpen}
-          onOpenChange={setHistoryDialogOpen}
-          productId={selectedProduct.id}
-          productName={selectedProduct.name}
-        />
-      )}
     </div>
   );
 }

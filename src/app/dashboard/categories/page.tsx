@@ -1,5 +1,6 @@
 "use client";
 
+import { ProtectedRoute } from "@/shared/components/protected-route";
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
@@ -63,49 +64,51 @@ export default function CategoriesPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Kategori</h1>
-          <p className="text-muted-foreground">
-            Kelola kategori produk untuk pengelompokan yang lebih baik
-          </p>
+    <ProtectedRoute adminOnly> {/* 👈 WRAP */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Kategori</h1>
+            <p className="text-muted-foreground">
+              Kelola kategori produk untuk pengelompokan yang lebih baik
+            </p>
+          </div>
+          <Button onClick={handleCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            Tambah Kategori
+          </Button>
         </div>
-        <Button onClick={handleCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          Tambah Kategori
-        </Button>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Daftar Kategori</CardTitle>
+            <CardDescription>
+              Total {categories.length} kategori terdaftar
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex h-48 items-center justify-center">
+                <p className="text-muted-foreground">Memuat data...</p>
+              </div>
+            ) : (
+              <CategoriesTable
+                data={categories}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            )}
+          </CardContent>
+        </Card>
+
+        <CategoryDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          category={selectedCategory}
+          onSubmit={handleSubmit}
+          isLoading={createMutation.isPending || updateMutation.isPending}
+        />
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Daftar Kategori</CardTitle>
-          <CardDescription>
-            Total {categories.length} kategori terdaftar
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex h-48 items-center justify-center">
-              <p className="text-muted-foreground">Memuat data...</p>
-            </div>
-          ) : (
-            <CategoriesTable
-              data={categories}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
-          )}
-        </CardContent>
-      </Card>
-
-      <CategoryDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        category={selectedCategory}
-        onSubmit={handleSubmit}
-        isLoading={createMutation.isPending || updateMutation.isPending}
-      />
-    </div>
+    </ProtectedRoute>
   );
 }
