@@ -82,7 +82,7 @@ export default function ReportsPage() {
       ...(topProducts || []).map((p: TopProduct) => [
         p.product_name,
         p.product_code,
-        p.total_quantity.toString(),
+        p.total_sold.toString(),
         p.total_revenue.toString(),
       ]),
     ];
@@ -404,7 +404,7 @@ export default function ReportsPage() {
                               {product.product_code}
                             </TableCell>
                             <TableCell className="text-right font-semibold">
-                              {product.total_quantity}
+                              {product.total_sold}
                             </TableCell>
                             <TableCell className="text-right font-bold">
                               {formatCurrency(product.total_revenue)}

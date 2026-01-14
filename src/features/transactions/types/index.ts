@@ -83,7 +83,7 @@ export interface TopProduct {
   product_id: number;
   product_code: string;
   product_name: string;
-  total_quantity: number;
+  total_sold: number;
   total_revenue: number;
 }
 
