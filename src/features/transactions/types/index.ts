@@ -64,19 +64,22 @@ export interface TodaySummary {
   cash_payments: number;
   transfer_payments: number;
   total_items_sold: number;
+  total_profit: number; // 👈 ADD
+  profit_margin: number; // 👈 ADD
 }
 
-// NEW: Sales Report Types
 export interface SalesReport {
-  start_date: string;
-  end_date: string;
   total_transactions: number;
   total_revenue: number;
-  total_items_sold: number;
   cash_revenue: number;
   transfer_revenue: number;
-  average_transaction: number;
-  top_products: TopProduct[];
+  total_items_sold: number;
+  average_order_value: number;
+  total_profit: number; // 👈 ADD
+  total_cogs: number; // 👈 ADD (Cost of Goods Sold)
+  profit_margin: number; // 👈 ADD
+  start_date: string;
+  end_date: string;
 }
 
 export interface TopProduct {
