@@ -1,19 +1,20 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { useTodaySummary } from "@/features/transactions/hooks/use-transactions";
+import { useTodayTransactions } from "@/features/transactions/hooks/use-transactions";
+import { useLowStockProducts } from "@/features/products/hooks/use-products"; // 👈 ADD
+import { Badge } from "@/shared/components/ui/badge";
 import { 
   DollarSign, 
   ShoppingCart, 
   TrendingUp, 
   Package,
-  ArrowUpRight,
-  ArrowDownRight,
-  Percent
+  AlertTriangle, // 👈 ADD
 } from "lucide-react";
 
 export default function DashboardPage() {
-  const { data: summary, isLoading } = useTodaySummary();
+  const { data: summary, isLoading } = useTodayTransactions();
+  const { data: lowStockProducts = [], isLoading: lowStockLoading } = useLowStockProducts(); // 👈 ADD
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("id-ID", {
@@ -60,24 +61,25 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* 👇 ADD: Net Profit Card */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Laba Bersih
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(summary?.total_profit || 0)}
-            </div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Percent className="h-3 w-3" />
-              <span>Margin: {summary?.profit_margin?.toFixed(1) || 0}%</span>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Net Profit - Only show if available */}
+        {summary?.total_profit !== undefined && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Laba Bersih
+              </CardTitle>
+              <TrendingUp className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">
+                {formatCurrency(summary.total_profit)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Margin: {summary.profit_margin?.toFixed(1) || 0}%
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Total Transactions */}
         <Card>
@@ -117,53 +119,72 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* 👇 ADD: Profit Breakdown Card */}
+      {/* 👇 ADD: Low Stock Alerts + Quick Actions */}
       <div className="grid gap-4 md:grid-cols-2">
+        {/* Low Stock Alert */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Analisis Profitabilitas
+              <AlertTriangle className="h-5 w-5 text-orange-600" />
+              Peringatan Stok Rendah
+              {lowStockProducts.length > 0 && (
+                <Badge variant="destructive">{lowStockProducts.length}</Badge>
+              )}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">
-                  Total Pendapatan
-                </p>
-                <p className="text-xl font-bold">
-                  {formatCurrency(summary?.total_revenue || 0)}
-                </p>
+          <CardContent>
+            {lowStockLoading ? (
+              <p className="text-sm text-muted-foreground">Loading...</p>
+            ) : lowStockProducts.length > 0 ? (
+              <div className="space-y-2">
+                {lowStockProducts.slice(0, 5).map((product) => (
+                  <div
+                    key={product.id}
+                    className="flex items-center justify-between rounded-lg border p-3"
+                  >
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{product.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {product.code}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <Badge
+                        variant={product.stock === 0 ? "destructive" : "outline"}
+                        className="text-xs"
+                      >
+                        {product.stock === 0 ? "Habis" : `${product.stock} ${product.unit}`}
+                      </Badge>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Min: {product.min_stock}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                
+                {lowStockProducts.length > 5 && (
+                  <a
+                    href="/dashboard/products?filter=low-stock"
+                    className="block text-center text-sm text-primary hover:underline mt-2"
+                  >
+                    Lihat {lowStockProducts.length - 5} produk lainnya →
+                  </a>
+                )}
               </div>
-              <ArrowUpRight className="h-5 w-5 text-blue-600" />
-            </div>
-
-            <div className="flex items-center justify-between rounded-lg border p-3 bg-green-50">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">
-                  Laba Bersih
-                </p>
-                <p className="text-xl font-bold text-green-600">
-                  {formatCurrency(summary?.total_profit || 0)}
-                </p>
-              </div>
-              <div className="text-right">
-                <div className="flex items-center gap-1 text-sm font-semibold text-green-600">
-                  <Percent className="h-4 w-4" />
-                  <span>{summary?.profit_margin?.toFixed(1) || 0}%</span>
+            ) : (
+              <div className="flex h-32 items-center justify-center rounded-lg border border-dashed">
+                <div className="text-center">
+                  <Package className="mx-auto h-8 w-8 text-muted-foreground/50" />
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Semua stok aman
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">Margin</p>
               </div>
-            </div>
-
-            <div className="rounded-lg bg-muted p-3 text-xs text-muted-foreground">
-              💡 <strong>Info:</strong> Laba dihitung dari (Harga Jual - Harga Beli) × Qty Terjual
-            </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Quick Actions / Recent Activity */}
+        {/* Quick Actions */}
         <Card>
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
@@ -189,6 +210,22 @@ export default function DashboardPage() {
                 <p className="font-medium">Kelola Produk</p>
                 <p className="text-xs text-muted-foreground">Update inventory & harga</p>
               </div>
+            </a>
+
+            <a 
+              href="/dashboard/stock" 
+              className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted"
+            >
+              <TrendingUp className="h-5 w-5 text-primary" />
+              <div className="flex items-center gap-2">
+                <p className="font-medium">Stock Management</p>
+                {lowStockProducts.length > 0 && (
+                  <Badge variant="destructive" className="text-xs">
+                    {lowStockProducts.length}
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">Kelola stok produk</p>
             </a>
 
             <a 
