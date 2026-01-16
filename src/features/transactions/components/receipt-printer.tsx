@@ -167,11 +167,15 @@ export function ReceiptPrinter({
         </div>
       </div>
 
-      {/* 👇 CRITICAL: Extra spacer untuk memastikan footer terprint */}
-      <div style={{ height: "15mm" }}></div>
-      
-      {/* 👇 CRITICAL: Newlines untuk flush buffer printer */}
-      <div style={{ whiteSpace: "pre" }}>{"\n\n\n\n\n"}</div>
+      {/* Extra blank lines untuk force print */}
+      <div style={{ fontSize: "10px", lineHeight: "1.2" }}>
+        <br /><br /><br /><br /><br /><br />
+      </div>
+
+      {/* Invisible text untuk flush buffer */}
+      <div style={{ fontSize: "1px", color: "white" }}>
+        .
+      </div>
     </div>
   );
 }
