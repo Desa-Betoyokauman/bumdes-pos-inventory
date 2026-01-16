@@ -28,6 +28,7 @@ import { Transaction, TransactionFilters } from "@/features/transactions/types";
 import { Search, Filter, Download, RefreshCw, X } from "lucide-react";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
+import { ReceiptPrinter } from "@/features/transactions/components/receipt-printer";
 
 export default function TransactionHistoryPage() {
   const [mounted, setMounted] = useState(false);
@@ -74,8 +75,49 @@ export default function TransactionHistoryPage() {
 
   const handlePrintInvoice = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
+    
     setTimeout(() => {
-      handlePrint();
+      // Create new window for print
+      const printWindow = window.open("", "_blank");
+      
+      if (printWindow && invoiceRef.current) {
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>Struk ${transaction.invoice_number}</title>
+            <style>
+              @page {
+                size: 58mm auto;
+                margin: 0;
+              }
+              body {
+                margin: 0;
+                padding: 0;
+                font-family: 'Courier New', 'Consolas', monospace;
+              }
+              @media print {
+                body {
+                  width: 58mm;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            ${invoiceRef.current.innerHTML}
+          </body>
+          </html>
+        `);
+        
+        printWindow.document.close();
+        printWindow.focus();
+        
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 250);
+      }
     }, 100);
   };
 
@@ -378,16 +420,16 @@ export default function TransactionHistoryPage() {
         onPrint={selectedTransaction ? () => handlePrintInvoice(selectedTransaction) : undefined}
       />
 
-      {/* Hidden Invoice for Print */}
+      {/* Hidden Receipt for Print */}
       <div className="hidden">
         {selectedTransaction && (
-          <InvoicePreview
-            ref={invoiceRef}
-            transaction={selectedTransaction}
-            storeName="BUMDes Desa Betoyokauman"
-            storeAddress="Jl. Desa Betoyokauman, Kec. XXX"
-            storePhone="0812-3456-7890"
-          />
+          <div ref={invoiceRef}>
+            <ReceiptPrinter
+              transaction={selectedTransaction}
+              storeName="BUMDes Desa Betoyokauman"
+              storeAddress="Desa Betoyokauman, Jawa Timur"
+            />
+          </div>
         )}
       </div>
     </div>
