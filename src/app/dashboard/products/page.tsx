@@ -36,16 +36,28 @@ export default function ProductsPage() {
 
   // 👇 FIX: Accept Product object, not number
   const handleDelete = async (product: Product) => {
-    if (confirm(`Hapus produk "${product.name}"?`)) {
+    if (confirm(`Hapus produk "${product.name}"?\n\nPerhatian: Produk yang sudah pernah digunakan dalam transaksi tidak dapat dihapus.`)) {
       try {
         await deleteMutation.mutateAsync(product.id);
         toast.success("Produk berhasil dihapus");
       } catch (error: any) {
         const message = error.response?.data?.error || "Gagal menghapus produk";
-        toast.error(message);
+        
+        // 👇 Show detailed error message
+        if (error.response?.status === 400) {
+          toast.error(message, {
+            duration: 5000, // Show longer for important message
+            style: {
+              maxWidth: '500px',
+            },
+          });
+        } else {
+          toast.error(message);
+        }
       }
     }
   };
+
 
   const handleSubmit = async (data: ProductFormData) => {
     try {

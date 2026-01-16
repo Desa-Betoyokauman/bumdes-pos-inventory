@@ -21,6 +21,12 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { Edit, Trash2, AlertCircle } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/shared/components/ui/tooltip";
 import { Product } from "../types";
 
 interface ProductsTableProps {
@@ -143,6 +149,7 @@ export function ProductsTable({ data, onEdit, onDelete }: ProductsTableProps) {
       header: "Aksi",
       cell: ({ row }) => {
         const product = row.original;
+        
         return (
           <div className="flex justify-end gap-2">
             <Button
@@ -152,17 +159,30 @@ export function ProductsTable({ data, onEdit, onDelete }: ProductsTableProps) {
             >
               <Edit className="h-4 w-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onDelete(product)}
-            >
-              <Trash2 className="h-4 w-4 text-destructive" />
-            </Button>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onDelete(product)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">
+                    Produk yang sudah pernah digunakan<br />
+                    dalam transaksi tidak dapat dihapus
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         );
       },
-    },
+    }
   ];
 
   const table = useReactTable({
