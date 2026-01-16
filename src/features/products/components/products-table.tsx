@@ -20,13 +20,7 @@ import {
 } from "@/shared/components/ui/table";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
-import { Edit, Trash2, AlertCircle } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/shared/components/ui/tooltip";
+import { Edit, Trash2 } from "lucide-react";
 import { Product } from "../types";
 
 interface ProductsTableProps {
@@ -38,177 +32,147 @@ interface ProductsTableProps {
 export function ProductsTable({ data, onEdit, onDelete }: ProductsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
-
   const columns: ColumnDef<Product>[] = [
-    {
-      accessorKey: "code",
-      header: "Kode",
-      cell: ({ row }) => (
-        <div className="font-mono text-sm">{row.getValue("code")}</div>
-      ),
+  {
+    accessorKey: "code",
+    header: "Kode",
+    cell: ({ row }) => (
+      <span className="font-mono text-sm">{row.getValue("code")}</span>
+    ),
+  },
+  {
+    accessorKey: "name",
+    header: "Nama Produk",
+    cell: ({ row }) => (
+      <div>
+        <p className="font-medium">{row.getValue("name")}</p>
+        {row.original.description && (
+          <p className="text-sm text-muted-foreground line-clamp-1">
+            {row.original.description}
+          </p>
+        )}
+      </div>
+    ),
+  },
+  {
+    accessorKey: "category",
+    header: "Kategori",
+    cell: ({ row }) => {
+      const category = row.original.category;
+      return category ? (
+        <Badge variant="outline">{category.name}</Badge>
+      ) : (
+        <span className="text-muted-foreground">-</span>
+      );
     },
-    {
-      accessorKey: "name",
-      header: "Nama Produk",
-      cell: ({ row }) => {
-        const product = row.original;
-        return (
-          <div>
-            <div className="font-medium">{product.name}</div>
-            {product.category && (
-              <div className="text-xs text-muted-foreground">
-                {product.category.name}
-              </div>
-            )}
-          </div>
-        );
-      },
+  },
+  // 👇 ADD: Purchase Price Column
+  {
+    accessorKey: "purchase_price",
+    header: "Harga Beli",
+    cell: ({ row }) => {
+      const price = parseFloat(row.getValue("purchase_price"));
+      const formatted = new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        minimumFractionDigits: 0,
+      }).format(price);
+      return <span className="text-sm text-muted-foreground">{formatted}</span>;
     },
-    {
-      accessorKey: "purchase_price",
-      header: "Harga Beli",
-      cell: ({ row }) => (
-        <div className="text-right text-sm text-muted-foreground">
-          {formatCurrency(row.getValue("purchase_price"))}
+  },
+  // 👇 UPDATE: Selling Price Column
+  {
+    accessorKey: "price",
+    header: "Harga Jual",
+    cell: ({ row }) => {
+      const price = parseFloat(row.getValue("price"));
+      const purchasePrice = row.original.purchase_price;
+      const profit = price - purchasePrice;
+      const profitMargin = purchasePrice > 0 ? ((profit / purchasePrice) * 100).toFixed(1) : "0";
+      
+      const formatted = new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        minimumFractionDigits: 0,
+      }).format(price);
+      
+      return (
+        <div>
+          <p className="font-medium">{formatted}</p>
+          <p className="text-xs text-green-600">
+            +{profitMargin}% margin
+          </p>
         </div>
-      ),
+      );
     },
-    {
-      accessorKey: "price",
-      header: "Harga Jual",
-      cell: ({ row }) => (
-        <div className="text-right font-medium">
-          {formatCurrency(row.getValue("price"))}
+  },
+  {
+    accessorKey: "stock",
+    header: "Stok",
+    cell: ({ row }) => {
+      const product = row.original;
+      const isLowStock = product.stock <= product.min_stock;
+      return (
+        <div className="flex items-center gap-2">
+          <Badge variant={isLowStock ? "destructive" : "default"}>
+            {product.stock} {product.unit}
+          </Badge>
         </div>
-      ),
+      );
     },
-    {
-      id: "profit",
-      header: "Profit/Unit",
-      cell: ({ row }) => {
-        const product = row.original;
-        const profit = product.price - product.purchase_price;
-        const margin =
-          product.purchase_price > 0
-            ? ((profit / product.purchase_price) * 100).toFixed(1)
-            : "0";
+  },
+  {
+    id: "actions",
+    header: "Aksi",
+    cell: ({ row }) => {
+      const product = row.original;
+      const canDelete = product.stock === 0;
+      
+      return (
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onEdit(product)}
+            title="Edit produk"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onDelete(product)}
+            disabled={!canDelete}
+            className="disabled:opacity-30 disabled:cursor-not-allowed"
+            title={
+              canDelete
+                ? "Hapus produk"
+                : "Produk tidak dapat dihapus (sudah pernah digunakan)"
+            }
+          >
+            <Trash2 
+              className={`h-4 w-4 ${canDelete ? 'text-destructive' : 'text-muted-foreground'}`} 
+            />
+          </Button>
+        </div>
+      );
+    },
+  },
+];
 
-        return (
-          <div className="text-right">
-            <div
-              className={`font-semibold text-sm ${
-                profit > 0 ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              {formatCurrency(profit)}
-            </div>
-            <div className="text-xs text-muted-foreground">{margin}%</div>
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: "stock",
-      header: "Stok",
-      cell: ({ row }) => {
-        const product = row.original;
-        const isLowStock = product.stock <= product.min_stock;
-
-        return (
-          <div className="text-center">
-            <Badge
-              variant={
-                product.stock === 0
-                  ? "destructive"
-                  : isLowStock
-                  ? "outline"
-                  : "secondary"
-              }
-            >
-              {product.stock} {product.unit}
-            </Badge>
-            {isLowStock && product.stock > 0 && (
-              <div className="flex items-center gap-1 mt-1 text-xs text-orange-600">
-                <AlertCircle className="h-3 w-3" />
-                <span>Low</span>
-              </div>
-            )}
-          </div>
-        );
-      },
-    },
-    {
-      id: "actions",
-      header: "Aksi",
-      cell: ({ row }) => {
-        const product = row.original;
-        
-        return (
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEdit(product)}
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onDelete(product)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-xs">
-                    Produk yang sudah pernah digunakan<br />
-                    dalam transaksi tidak dapat dihapus
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        );
-      },
-    }
-  ];
 
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
+    onSortingChange: setSorting,
     state: {
       sorting,
     },
   });
-
-  if (data.length === 0) {
-    return (
-      <div className="flex h-48 items-center justify-center rounded-lg border border-dashed">
-        <div className="text-center">
-          <p className="text-sm text-muted-foreground">Belum ada produk</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Klik &ldquo;Tambah Produk&rdquo; untuk mulai
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
@@ -231,37 +195,56 @@ export function ProductsTable({ data, onEdit, onDelete }: ProductsTableProps) {
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  Tidak ada data.
+                </TableCell>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-end space-x-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          Previous
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Next
-        </Button>
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          Menampilkan {table.getRowModel().rows.length} dari {data.length} produk
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            Next
+          </Button>
+        </div>
       </div>
     </div>
   );

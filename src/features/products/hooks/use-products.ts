@@ -71,3 +71,4 @@ export const useLowStockProducts = () => {
     refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
 };
+
