@@ -64,6 +64,11 @@ export const transactionsApi = {
     return response.data.data;
   },
 
+  getTodaySummary: async (): Promise<TodaySummary> => {
+    const response = await api.get("/transactions/today");
+    return response.data.data;
+  },
+
   /**
    * Get sales report by date range
    */

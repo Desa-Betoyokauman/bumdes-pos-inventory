@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { transactionsApi } from "../api/transactions.service";
-import { CreateTransactionRequest, TransactionFilters } from "../types";
+import { CreateTransactionRequest, TransactionFilters, TodaySummary, } from "../types";
 import toast from "react-hot-toast";
 
 /**
@@ -12,6 +12,14 @@ export function useTransactions(filters?: TransactionFilters) {
     queryFn: () => transactionsApi.getAll(filters),
   });
 }
+
+export const useTodaySummary = () => {
+  return useQuery<TodaySummary>({
+    queryKey: ["transactions", "today-summary"],
+    queryFn: transactionsApi.getTodaySummary,
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+};
 
 /**
  * Hook untuk get single transaction
