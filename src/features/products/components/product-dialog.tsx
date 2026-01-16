@@ -27,25 +27,31 @@ export function ProductDialog({
 }: ProductDialogProps) {
   const handleSubmit = (data: ProductFormData) => {
     onSubmit(data);
+  };
+
+  const handleCancel = () => {
     onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {product ? "Edit Produk" : "Tambah Produk Baru"}
           </DialogTitle>
           <DialogDescription>
             {product
-              ? "Ubah informasi produk di bawah ini."
-              : "Isi form di bawah untuk menambahkan produk baru."}
+              ? "Update informasi produk di bawah ini."
+              : "Isi form untuk menambahkan produk baru ke inventory."}
           </DialogDescription>
         </DialogHeader>
+        
         <ProductForm
+          product={product}
           onSubmit={handleSubmit}
           isLoading={isLoading}
+          onCancel={handleCancel}
         />
       </DialogContent>
     </Dialog>

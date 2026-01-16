@@ -1,11 +1,20 @@
 "use client";
 
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Button } from "@/shared/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
-import { Label } from "@/shared/components/ui/label";
+import { Button } from "@/shared/components/ui/button";
 import { Textarea } from "@/shared/components/ui/textarea";
 import {
   Select,
@@ -14,263 +23,332 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
-import { ProductFormData } from "../types";
 import { useCategories } from "@/features/categories/hooks/use-categories";
-import { Loader2 } from "lucide-react";
+import { Product, ProductFormData } from "../types";
+import { Separator } from "@/shared/components/ui/separator";
 
 const productSchema = z.object({
-  name: z.string().min(3, "Nama produk minimal 3 karakter"),
-  code: z.string().min(3, "Kode produk minimal 3 karakter"),
-  category_id: z.number().min(1, "Kategori wajib dipilih"),
-  price: z.number().min(0, "Harga minimal 0"),
-  stock: z.number().min(0, "Stok minimal 0"),
-  min_stock: z.number().min(0, "Stok minimum minimal 0"),
-  unit: z.string().min(1, "Satuan wajib diisi"),
+  code: z.string().min(1, "Kode produk wajib diisi"),
+  name: z.string().min(1, "Nama produk wajib diisi"),
   description: z.string().optional(),
+  unit: z.string().min(1, "Satuan wajib diisi"),
+  purchase_price: z.number().min(0, "Harga beli minimal 0"),
+  price: z.number().min(1, "Harga jual minimal 1"),
+  stock: z.number().min(0, "Stok minimal 0"),
+  min_stock: z.number().min(0, "Min stok minimal 0"),
+  category_id: z.number().min(1, "Kategori wajib dipilih"),
 });
 
 interface ProductFormProps {
-  initialData?: ProductFormData;
+  product?: Product | null;
   onSubmit: (data: ProductFormData) => void;
   isLoading?: boolean;
+  onCancel?: () => void;
 }
 
 export function ProductForm({
-  initialData,
+  product,
   onSubmit,
   isLoading,
+  onCancel,
 }: ProductFormProps) {
-  // Fetch categories from API
-  const { data: categories = [], isLoading: categoriesLoading } = useCategories();
+  const { data: categories = [] } = useCategories();
+  const isEdit = !!product;
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<ProductFormData>({
+  const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
-    defaultValues: initialData || {
-      name: "",
+    defaultValues: {
       code: "",
-      category_id: 0,
+      name: "",
+      description: "",
+      unit: "pcs",
+      purchase_price: 0,
       price: 0,
       stock: 0,
-      min_stock: 0,
-      unit: "",
-      description: "",
+      min_stock: 5,
+      category_id: 0,
     },
   });
 
-  const categoryId = watch("category_id");
-  const unit = watch("unit");
+  // Watch for price changes to calculate profit
+  const purchasePrice = form.watch("purchase_price");
+  const price = form.watch("price");
+  
+  // Calculate profit
+  const profitAmount = price - purchasePrice;
+  const profitMargin = purchasePrice > 0 
+    ? ((profitAmount / purchasePrice) * 100).toFixed(1) 
+    : "0";
+
+  useEffect(() => {
+    if (product) {
+      form.reset({
+        code: product.code,
+        name: product.name,
+        description: product.description || "",
+        unit: product.unit,
+        purchase_price: product.purchase_price,
+        price: product.price,
+        stock: product.stock,
+        min_stock: product.min_stock,
+        category_id: product.category_id,
+      });
+    }
+  }, [product, form]);
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Nama Produk */}
-        <div className="space-y-2">
-          <Label htmlFor="name">
-            Nama Produk <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id="name"
-            {...register("name")}
-            placeholder="Misal: Beras Premium"
-            disabled={isLoading}
-          />
-          {errors.name && (
-            <p className="text-sm text-destructive">{errors.name.message}</p>
-          )}
-        </div>
-
-        {/* Kode Produk */}
-        <div className="space-y-2">
-          <Label htmlFor="code">
-            Kode Produk <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id="code"
-            {...register("code")}
-            placeholder="Misal: BRS-001"
-            disabled={isLoading}
-          />
-          {errors.code && (
-            <p className="text-sm text-destructive">{errors.code.message}</p>
-          )}
-        </div>
-
-        {/* Kategori - Dynamic from API */}
-        <div className="space-y-2">
-          <Label htmlFor="category">
-            Kategori <span className="text-destructive">*</span>
-          </Label>
-          <Select
-            value={categoryId > 0 ? categoryId.toString() : ""}
-            onValueChange={(value) => setValue("category_id", parseInt(value), {
-              shouldValidate: true,
-            })}
-            disabled={isLoading || categoriesLoading}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Pilih kategori" />
-            </SelectTrigger>
-            <SelectContent>
-              {categoriesLoading ? (
-                <div className="flex items-center justify-center py-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="ml-2 text-sm">Memuat...</span>
-                </div>
-              ) : categories.length === 0 ? (
-                <div className="py-2 text-center text-sm text-muted-foreground">
-                  Belum ada kategori
-                </div>
-              ) : (
-                categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id.toString()}>
-                    {category.name}
-                  </SelectItem>
-                ))
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Basic Info */}
+        <div className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="code"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Kode Produk *</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="BRS-001"
+                      disabled={isEdit}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
-            </SelectContent>
-          </Select>
-          {errors.category_id && (
-            <p className="text-sm text-destructive">
-              {errors.category_id.message}
-            </p>
-          )}
-        </div>
+            />
 
-        {/* Satuan */}
-        <div className="space-y-2">
-          <Label htmlFor="unit">
-            Satuan <span className="text-destructive">*</span>
-          </Label>
-          <Select
-            value={unit || ""}
-            onValueChange={(value) => setValue("unit", value, {
-              shouldValidate: true,
-            })}
-            disabled={isLoading}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Pilih satuan" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pcs">Pcs (Pieces)</SelectItem>
-              <SelectItem value="kg">Kg (Kilogram)</SelectItem>
-              <SelectItem value="gram">Gram</SelectItem>
-              <SelectItem value="liter">Liter</SelectItem>
-              <SelectItem value="ml">Ml (Mililiter)</SelectItem>
-              <SelectItem value="box">Box</SelectItem>
-              <SelectItem value="pack">Pack</SelectItem>
-              <SelectItem value="karton">Karton</SelectItem>
-              <SelectItem value="lusin">Lusin</SelectItem>
-            </SelectContent>
-          </Select>
-          {errors.unit && (
-            <p className="text-sm text-destructive">{errors.unit.message}</p>
-          )}
-        </div>
-
-        {/* Harga */}
-        <div className="space-y-2">
-          <Label htmlFor="price">
-            Harga <span className="text-destructive">*</span>
-          </Label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-              Rp
-            </span>
-            <Input
-              id="price"
-              type="number"
-              {...register("price", { valueAsNumber: true })}
-              placeholder="0"
-              className="pl-10"
-              disabled={isLoading}
-              min="0"
-              step="100"
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nama Produk *</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Nama produk" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
           </div>
-          {errors.price && (
-            <p className="text-sm text-destructive">{errors.price.message}</p>
-          )}
+
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Deskripsi</FormLabel>
+                <FormControl>
+                  <Textarea
+                    {...field}
+                    placeholder="Deskripsi produk (opsional)"
+                    rows={2}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="category_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Kategori *</FormLabel>
+                  <Select
+                    onValueChange={(value) => field.onChange(parseInt(value))}
+                    value={field.value?.toString()}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih kategori" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id.toString()}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="unit"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Satuan *</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="pcs, kg, liter, dll" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
 
-        {/* Stok */}
-        <div className="space-y-2">
-          <Label htmlFor="stock">
-            Stok Awal <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id="stock"
-            type="number"
-            {...register("stock", { valueAsNumber: true })}
-            placeholder="0"
-            disabled={isLoading}
-            min="0"
-          />
-          {errors.stock && (
-            <p className="text-sm text-destructive">{errors.stock.message}</p>
-          )}
-        </div>
+        <Separator />
 
-        {/* Stok Minimum */}
-        <div className="space-y-2">
-          <Label htmlFor="min_stock">
-            Stok Minimum <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id="min_stock"
-            type="number"
-            {...register("min_stock", { valueAsNumber: true })}
-            placeholder="0"
-            disabled={isLoading}
-            min="0"
-          />
-          {errors.min_stock && (
-            <p className="text-sm text-destructive">
-              {errors.min_stock.message}
+        {/* Pricing Section */}
+        <div className="space-y-4 rounded-lg border bg-muted/50 p-4">
+          <div>
+            <h4 className="font-semibold text-sm mb-1">Pricing & Profitability</h4>
+            <p className="text-xs text-muted-foreground">
+              Set harga beli dan harga jual untuk menghitung profit
             </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="purchase_price"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Harga Beli (Kulakan) *</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      placeholder="0"
+                    />
+                  </FormControl>
+                  <FormDescription>Harga saat beli dari supplier</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="price"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Harga Jual *</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      placeholder="0"
+                    />
+                  </FormControl>
+                  <FormDescription>Harga jual ke customer</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Profit Preview */}
+          {purchasePrice > 0 && price > 0 && (
+            <div className="rounded-lg bg-background border p-3 space-y-2">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Profit per unit:</span>
+                <span className={`font-semibold text-base ${profitAmount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(profitAmount)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Margin:</span>
+                <span className={`font-semibold ${parseFloat(profitMargin) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {profitMargin}%
+                </span>
+              </div>
+              {profitAmount <= 0 && (
+                <p className="text-xs text-red-600 mt-1">
+                  ⚠️ Harga jual harus lebih besar dari harga beli
+                </p>
+              )}
+            </div>
           )}
-          <p className="text-xs text-muted-foreground">
-            Alert akan muncul jika stok mencapai jumlah ini
-          </p>
         </div>
-      </div>
 
-      {/* Deskripsi */}
-      <div className="space-y-2">
-        <Label htmlFor="description">Deskripsi</Label>
-        <Textarea
-          id="description"
-          {...register("description")}
-          placeholder="Deskripsi produk (opsional)"
-          rows={3}
-          disabled={isLoading}
-        />
-        {errors.description && (
-          <p className="text-sm text-destructive">
-            {errors.description.message}
-          </p>
-        )}
-      </div>
+        <Separator />
 
-      {/* Submit Button */}
-      <div className="flex justify-end gap-2 pt-4">
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Menyimpan...
-            </>
-          ) : (
-            "Simpan"
+        {/* Stock Section */}
+        <div className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="stock"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Stok Awal *</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      {...field}
+                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                      placeholder="0"
+                      disabled={isEdit}
+                    />
+                  </FormControl>
+                  {isEdit && (
+                    <FormDescription>
+                      Update stok melalui menu Stock Management
+                    </FormDescription>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="min_stock"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Minimum Stok *</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      {...field}
+                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                      placeholder="5"
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Notifikasi saat stok mencapai batas ini
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-2 pt-4">
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Batal
+            </Button>
           )}
-        </Button>
-      </div>
-    </form>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? "Menyimpan..." : isEdit ? "Update" : "Tambah"}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 }
