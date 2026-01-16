@@ -167,8 +167,11 @@ export function ReceiptPrinter({
         </div>
       </div>
 
-      {/* Spacer untuk paper cut */}
-      <div style={{ height: "10mm" }}></div>
+      {/* 👇 CRITICAL: Extra spacer untuk memastikan footer terprint */}
+      <div style={{ height: "15mm" }}></div>
+      
+      {/* 👇 CRITICAL: Newlines untuk flush buffer printer */}
+      <div style={{ whiteSpace: "pre" }}>{"\n\n\n\n\n"}</div>
     </div>
   );
 }

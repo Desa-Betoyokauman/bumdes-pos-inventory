@@ -77,7 +77,6 @@ export default function TransactionHistoryPage() {
     setSelectedTransaction(transaction);
     
     setTimeout(() => {
-      // Create new window for print
       const printWindow = window.open("", "_blank");
       
       if (printWindow && invoiceRef.current) {
@@ -101,6 +100,10 @@ export default function TransactionHistoryPage() {
                 body {
                   width: 58mm;
                 }
+                /* 👇 Ensure footer prints */
+                .print-footer {
+                  page-break-inside: avoid;
+                }
               }
             </style>
           </head>
@@ -113,10 +116,15 @@ export default function TransactionHistoryPage() {
         printWindow.document.close();
         printWindow.focus();
         
+        // 👇 Wait for content to render
         setTimeout(() => {
           printWindow.print();
-          printWindow.close();
-        }, 250);
+          
+          // 👇 Close window after print dialog
+          setTimeout(() => {
+            printWindow.close();
+          }, 500);
+        }, 500);
       }
     }, 100);
   };
