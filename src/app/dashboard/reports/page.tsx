@@ -73,7 +73,7 @@ export default function ReportsPage() {
       ["Total Transaksi", salesReport.total_transactions.toString()],
       ["Total Pendapatan", salesReport.total_revenue.toString()],
       ["Total Item Terjual", salesReport.total_items_sold.toString()],
-      ["Rata-rata Transaksi", salesReport.average_transaction.toString()],
+      ["Rata-rata Transaksi", salesReport.average_order_value.toString()], // 👈 FIX LINE 76
       ["Pendapatan Tunai", salesReport.cash_revenue.toString()],
       ["Pendapatan Transfer", salesReport.transfer_revenue.toString()],
       [""],
@@ -198,7 +198,7 @@ export default function ReportsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {formatCurrency(salesReport.average_transaction)}
+                    {formatCurrency(salesReport.average_order_value)} {/* 👈 FIX */}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     Per transaksi
